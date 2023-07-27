@@ -21,7 +21,7 @@ class StoreFacility extends Base {
   }
 
   async getBee (opts = {}, beeOpts = {}) {
-    const hc = this.store.get(opts)    
+    const hc = this.store.get(opts)
 
     return new Hyperbee(hc, beeOpts)
   }
