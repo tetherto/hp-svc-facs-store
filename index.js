@@ -1,7 +1,6 @@
 'use strict'
 
 const async = require('async')
-const _ = require('lodash')
 const Corestore = require('corestore')
 const Hypercore = require('hypercore')
 const Hyperbee = require('hyperbee')
