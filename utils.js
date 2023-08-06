@@ -1,8 +1,8 @@
 function convIntToBin (val) {  
-  const kstart = Buffer.allocUnsafe(6)
-  kstart.writeUIntBE(val, 0, 6)
+  const buf = Buffer.allocUnsafe(6)
+  buf.writeUIntBE(val, 0, 6)
 
-  return val
+  return buf
 }
 
 module.exports = {
