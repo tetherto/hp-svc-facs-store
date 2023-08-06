@@ -1,4 +1,4 @@
-function convInt2bin (val) {  
+function convIntToBin (val) {  
   const kstart = Buffer.allocUnsafe(6)
   kstart.writeUIntBE(val, 0, 6)
 
@@ -6,5 +6,5 @@ function convInt2bin (val) {
 }
 
 module.exports = {
-  convInt2bin
+  convIntToBin
 }
