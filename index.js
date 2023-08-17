@@ -1,5 +1,7 @@
 'use strict'
 
+const fs = require('fs/promises')
+const path = require('path')
 const async = require('async')
 const Corestore = require('corestore')
 const Hypercore = require('hypercore')
@@ -23,6 +25,15 @@ class StoreFacility extends Base {
     const hc = this.store.get(opts)
 
     return new Hyperbee(hc, beeOpts)
+  }
+
+  async unlink (_key) {
+    const key = _key.toString('hex')
+    const coreDir = path.join(this.opts.storeDir, 'cores', key.slice(0, 2), key.slice(2, 4), key)
+
+    try {
+      await fs.rm(coreDir, { recursive: true })
+    } catch (e) { console.error(e) }
   }
 
   _start (cb) {
