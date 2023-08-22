@@ -27,9 +27,25 @@ class StoreFacility extends Base {
     return new Hyperbee(hc, beeOpts)
   }
 
-  async unlink (_key) {
+  _calcCorePath (_key) {
     const key = _key.toString('hex')
     const coreDir = path.join(this.opts.storeDir, 'cores', key.slice(0, 2), key.slice(2, 4), key)
+
+    return coreDir
+  }
+
+  async exists (_key) {
+    const coreDir = this._calcCorePath(_key)
+
+    try {
+      await fs.stat(coreDir)
+    } catch (e) {
+      return false
+    }
+  }
+
+  async unlink (_key) {
+    const coreDir = this._calcCorePath(_key)
 
     try {
       await fs.rm(coreDir, { recursive: true })
@@ -44,7 +60,10 @@ class StoreFacility extends Base {
           throw new Error('ERR_FACS_STORE_STORAGE_PATH_INVALID')
         }
 
-        this.store = new Corestore(this.opts.storeDir)
+        this.store = new Corestore(this.opts.storeDir, {
+          primaryKey: this.opts.storePrimaryKey ?
+          Buffer.from(this.opts.storePrimaryKey, 'hex') : null
+        })
       }
     ], cb)
   }
