@@ -38,7 +38,7 @@ class StoreFacility extends Base {
     const coreDir = this._calcCorePath(_key)
 
     try {
-      await fs.stat(coreDir)
+      return await fs.stat(coreDir) ? true : false
     } catch (e) {
       return false
     }
@@ -46,10 +46,7 @@ class StoreFacility extends Base {
 
   async unlink (_key) {
     const coreDir = this._calcCorePath(_key)
-
-    try {
-      await fs.rm(coreDir, { recursive: true })
-    } catch (e) { console.error(e) }
+    await fs.rm(coreDir, { recursive: true })
   }
 
   _start (cb) {
