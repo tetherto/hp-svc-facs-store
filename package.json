@@ -12,12 +12,12 @@
     "bitfinex"
   ],
   "dependencies": {
-    "@hyperswarm/rpc": "^3.2.1",
+    "@hyperswarm/rpc": "^3.2.2",
     "async": "^3.2.1",
     "bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
     "corestore": "^6.15.9",
     "hyperbee": "^2.15.2",
-    "hypercore": "^10.29.0"
+    "hypercore": "^10.30.0"
   },
   "engine": {
     "node": ">=8.0"
