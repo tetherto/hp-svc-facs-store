@@ -15,9 +15,9 @@
     "@hyperswarm/rpc": "^3.2.2",
     "async": "^3.2.1",
     "bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
-    "corestore": "^6.15.9",
-    "hyperbee": "^2.15.2",
-    "hypercore": "^10.30.0"
+    "corestore": "^6.15.11",
+    "hyperbee": "^2.16.0",
+    "hypercore": "^10.31.9"
   },
   "engine": {
     "node": ">=8.0"
