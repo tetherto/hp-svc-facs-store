@@ -4,7 +4,6 @@ const fs = require('fs/promises')
 const path = require('path')
 const async = require('async')
 const Corestore = require('corestore')
-const Hypercore = require('hypercore')
 const Hyperbee = require('hyperbee')
 const Base = require('bfx-facs-base')
 
