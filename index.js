@@ -25,12 +25,12 @@ class StoreFacility extends Base {
   }
 
   async exists (_key) {
-    const core = this.getCore({ key: _key })
+    const core = this.store.get({ key: _key })
     return !!core
   }
 
   async unlink (_key) {
-    const hc = this.getCore({ key: _key })
+    const hc = this.store.get({ key: _key })
     await hc.clear(0, hc.length)
     await hc.truncate()
     await hc.close()
