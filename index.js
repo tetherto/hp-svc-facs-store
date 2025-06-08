@@ -1,7 +1,5 @@
 'use strict'
 
-const fs = require('fs/promises')
-const path = require('path')
 const async = require('async')
 const Corestore = require('corestore')
 const Hyperbee = require('hyperbee')
@@ -15,9 +13,9 @@ class StoreFacility extends Base {
 
     this.init()
   }
-  
+
   async getCore (opts = {}) {
-    return this.store.get(opts)    
+    return this.store.get(opts)
   }
 
   async getBee (opts = {}, beeOpts = {}) {
@@ -26,26 +24,16 @@ class StoreFacility extends Base {
     return new Hyperbee(hc, beeOpts)
   }
 
-  _calcCorePath (_key) {
-    const key = _key.toString('hex')
-    const coreDir = path.join(this.opts.storeDir, 'cores', key.slice(0, 2), key.slice(2, 4), key)
-
-    return coreDir
-  }
-
   async exists (_key) {
-    const coreDir = this._calcCorePath(_key)
-
-    try {
-      return await fs.stat(coreDir) ? true : false
-    } catch (e) {
-      return false
-    }
+    const core = this.getCore({ key: _key })
+    return !!core
   }
 
   async unlink (_key) {
-    const coreDir = this._calcCorePath(_key)
-    await fs.rm(coreDir, { recursive: true })
+    const hc = this.getCore({ key: _key })
+    await hc.clear(0, hc.length)
+    await hc.truncate()
+    await hc.close()
   }
 
   _start (cb) {
@@ -57,8 +45,9 @@ class StoreFacility extends Base {
         }
 
         this.store = new Corestore(this.opts.storeDir, {
-          primaryKey: this.opts.storePrimaryKey ?
-          Buffer.from(this.opts.storePrimaryKey, 'hex') : null
+          primaryKey: this.opts.storePrimaryKey
+            ? Buffer.from(this.opts.storePrimaryKey, 'hex')
+            : null
         })
       }
     ], cb)
