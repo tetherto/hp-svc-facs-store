@@ -26,7 +26,7 @@ class StoreFacility extends Base {
   }
 
   async getBase (baseOpts, boostrapKey = null) {
-    return new Autobase(this.store, boostrapKey, baseOpts)
+    return new Autobase(this.store.session(), boostrapKey, baseOpts)
   }
 
   async exists (_key) {
