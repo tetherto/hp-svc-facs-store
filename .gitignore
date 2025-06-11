@@ -9,3 +9,4 @@ config/*.json
 config/facs/*.json
 logs
 package-lock.json
+store

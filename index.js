@@ -1,10 +1,8 @@
 'use strict'
 
-const fs = require('fs/promises')
-const path = require('path')
 const async = require('async')
+const Autobase = require('autobase')
 const Corestore = require('corestore')
-const Hypercore = require('hypercore')
 const Hyperbee = require('hyperbee')
 const Base = require('bfx-facs-base')
 
@@ -16,9 +14,9 @@ class StoreFacility extends Base {
 
     this.init()
   }
-  
+
   async getCore (opts = {}) {
-    return this.store.get(opts)    
+    return this.store.get(opts)
   }
 
   async getBee (opts = {}, beeOpts = {}) {
@@ -27,26 +25,20 @@ class StoreFacility extends Base {
     return new Hyperbee(hc, beeOpts)
   }
 
-  _calcCorePath (_key) {
-    const key = _key.toString('hex')
-    const coreDir = path.join(this.opts.storeDir, 'cores', key.slice(0, 2), key.slice(2, 4), key)
-
-    return coreDir
+  async getBase (baseOpts, boostrapKey = null) {
+    return new Autobase(this.store, boostrapKey, baseOpts)
   }
 
   async exists (_key) {
-    const coreDir = this._calcCorePath(_key)
-
-    try {
-      return await fs.stat(coreDir) ? true : false
-    } catch (e) {
-      return false
-    }
+    const core = this.store.get({ key: _key })
+    return !!core
   }
 
   async unlink (_key) {
-    const coreDir = this._calcCorePath(_key)
-    await fs.rm(coreDir, { recursive: true })
+    const core = this.store.get({ key: _key })
+    await core.clear(0, core.length)
+    await core.truncate()
+    await core.close()
   }
 
   _start (cb) {
@@ -58,8 +50,9 @@ class StoreFacility extends Base {
         }
 
         this.store = new Corestore(this.opts.storeDir, {
-          primaryKey: this.opts.storePrimaryKey ?
-          Buffer.from(this.opts.storePrimaryKey, 'hex') : null
+          primaryKey: this.opts.storePrimaryKey
+            ? Buffer.from(this.opts.storePrimaryKey, 'hex')
+            : null
         })
       }
     ], cb)
@@ -69,6 +62,7 @@ class StoreFacility extends Base {
     async.series([
       next => { super._stop(next) },
       async () => {
+        await this.store.close()
         delete this.store
       }
     ], cb)
