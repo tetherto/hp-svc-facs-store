@@ -1,6 +1,6 @@
 {
   "name": "hp-svc-facs-store",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "private": false,
   "description": "Holepunch SVC Facility RPC",
   "author": {
@@ -11,16 +11,29 @@
   "keywords": [
     "bitfinex"
   ],
-  "dependencies": {
-    "@hyperswarm/rpc": "^3.3.2",
-    "async": "^3.2.1",
-    "bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
-    "corestore": "^6.17.0",
-    "hyperbee": "^2.18.2",
-    "hypercore": "^10.33.4"
+  "scripts": {
+    "lint": "standard",
+    "lint:fix": "standard --fix",
+    "test": "brittle tests/{,**/}*.test.js",
+    "test:coverage": "brittle --coverage tests/{,**/}*.test.js",
+    "posttest": "npm run lint"
   },
-  "engine": {
-    "node": ">=8.0"
+  "dependencies": {
+    "async": "^3.2.1",
+    "autobase": "^7.11.0",
+    "bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
+    "corestore": "^7.4.5",
+    "hyperbee": "^2.24.2",
+    "hypercore": "^11.8.3",
+    "hyperswarm": "^4.11.7"
+  },
+  "devDependencies": {
+    "@prev/corestore": "npm:corestore@^6.17.0",
+    "brittle": "^3.16.3",
+    "standard": "^17.1.2"
+  },
+  "engines": {
+    "node": ">=16.0"
   },
   "license": "Apache-2.0",
   "repository": {
