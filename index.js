@@ -2,9 +2,10 @@
 
 const async = require('async')
 const Autobase = require('autobase')
+const Base = require('bfx-facs-base')
 const Corestore = require('corestore')
 const Hyperbee = require('hyperbee')
-const Base = require('bfx-facs-base')
+const Hyperswarm = require('hyperswarm')
 
 class StoreFacility extends Base {
   constructor (caller, opts, ctx) {
@@ -27,6 +28,13 @@ class StoreFacility extends Base {
 
   async getBase (baseOpts, boostrapKey = null) {
     return new Autobase(this.store.session(), boostrapKey, baseOpts)
+  }
+
+  async swarmBase (base) {
+    const swarm = new Hyperswarm({ keypair: base.local.keyPair })
+    swarm.on('connection', (connection) => base.replicate(connection))
+    swarm.join(base.discoveryKey)
+    return swarm
   }
 
   async exists (_key) {
