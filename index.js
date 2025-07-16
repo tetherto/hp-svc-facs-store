@@ -58,9 +58,9 @@ class StoreFacility extends Base {
     }
   }
 
-  async putAndClear (bee, key, value, putOpts = {}, getOpts = {}) {
-    const shouldCheckIfUpdateHappened = !!putOpts.cas
-    const existingEntry = await bee.get(key)
+  async putAndClear (bee, key, value, putOpts, getOpts) {
+    const shouldCheckIfUpdateHappened = !!putOpts?.cas
+    const existingEntry = await bee.get(key, getOpts)
     await bee.put(key, value, putOpts)
 
     if (!existingEntry?.seq) {
@@ -76,9 +76,9 @@ class StoreFacility extends Base {
     await bee.core.clear(existingEntry.seq)
   }
 
-  async delAndClear (bee, key, delOpts = {}, getOpts = {}) {
-    const shouldCheckIfDelHappened = !!delOpts.cas
-    const existingEntry = await bee.get(key)
+  async delAndClear (bee, key, delOpts, getOpts) {
+    const shouldCheckIfDelHappened = !!delOpts?.cas
+    const existingEntry = await bee.get(key, getOpts)
     await bee.del(key, delOpts)
     if (!existingEntry?.seq) {
       return
