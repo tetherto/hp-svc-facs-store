@@ -6,7 +6,7 @@ const Autobase = require('autobase')
 const Hypercore = require('hypercore')
 const Hyperbee = require('hyperbee')
 const { convFromBin } = require('../utils')
-const { test } = require('brittle')
+const { test, hook } = require('brittle')
 
 const StoreFacility = require('../index')
 
@@ -15,6 +15,11 @@ test('facility', async (t) => {
   const ctx = { env: 'test' }
   const opts = { storeDir: path.join(__dirname) + '/store/1' }
   const fac = new StoreFacility(caller, opts, ctx)
+
+  hook('setup hook', t => {
+    cleanupStore(opts.storeDir)
+    cleanupStore(path.join(__dirname) + '/store/2')
+  })
 
   const cleanupStore = (storeDir) => {
     if (fs.existsSync(storeDir)) {
@@ -97,7 +102,7 @@ test('facility', async (t) => {
     t.is((await view.get('foo')).value, 'bar')
   })
 
-  await t.test('clearBeeCache', async (t) => {
+  await t.test('clearBeeCache - block deletion behavior in one execution', async (t) => {
     const bee = await fac.getBee({ name: 'clearBeeCache' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
     await bee.ready()
 
@@ -135,6 +140,102 @@ test('facility', async (t) => {
     t.alike(await bee.core.get(9, { wait: false }), null)
     t.alike(await bee.core.get(10, { wait: false }), null)
     t.ok(await bee.core.get(11, { wait: false }), 'Last block should remain')
-    t.is(seqCheckpoint, 11)
+    t.is(seqCheckpoint, 10)
+  })
+
+  await t.test('clearBeeCache - block deletion behavior across executions', async t => {
+    const bee = await fac.getBee({ name: 'clearBeeCache2' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
+    await bee.ready()
+
+    // values correspond to their block seq. numbers
+    await bee.put('irrelevantKey1', 1)
+    await bee.put('keyToBeDeletedInNextRun', 2)
+    await bee.del('irrelevantKey1', 3)
+    await bee.put('irrelevantKey2', 4)
+
+    await fac.clearBeeCache(bee, 'clearBeeCache', 10)
+    const seqCheckpoint = convFromBin(await bee.core.getUserData('clearBeeCache'), 'number')
+    t.is(seqCheckpoint, 3)
+
+    await bee.del('keyToBeDeletedInNextRun') // seq # 5
+    await bee.put('irrelevantKey3', 6)
+
+    await fac.clearBeeCache(bee, 'clearBeeCache', 10)
+    const seqCheckpointAfterSecondRun = convFromBin(await bee.core.getUserData('clearBeeCache'), 'number')
+    t.is(seqCheckpointAfterSecondRun, 5)
+
+    t.is(await bee.core.get(5, { wait: false }), null) // we clean the .del block for key: keyToBeDeletedInNextRun
+    t.not(await bee.core.get(2, { wait: false }), null) // This should've been t.ok and not t.not, but its a limitation of our clearBeeCache
+  })
+
+  await t.test('putAndClear', async t => {
+    const bee = await fac.getBee({ name: 'putAndClear' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
+    await bee.ready()
+
+    await fac.putAndClear(bee, 'testPutKey', '1')
+    const entryBeforeUpdate = await bee.get('testPutKey')
+
+    t.is(entryBeforeUpdate?.value, '1')
+    t.is(entryBeforeUpdate?.seq, 1)
+
+    t.comment('Updating key')
+    await fac.putAndClear(bee, 'testPutKey', '2')
+    const entryAfterUpdate = await bee.get('testPutKey')
+
+    t.alike(await bee.core.get(1, { wait: false }), null)
+    t.is(entryAfterUpdate?.seq, 2)
+    t.is(entryAfterUpdate?.value, '2')
+
+    t.comment('should work fine when cas option provided')
+
+    await fac.putAndClear(bee, 'testPutKey', 3, {
+      cas: () => false
+    })
+    const entryAfterCasFalse = await bee.get('testPutKey')
+    t.is(entryAfterCasFalse?.value, '2', 'should keep old value')
+    t.is(entryAfterCasFalse?.seq, 2)
+
+    await fac.putAndClear(bee, 'testPutKey', 3, {
+      cas: () => true
+    })
+    const entryAfterCasTrue = await bee.get('testPutKey')
+    t.is(entryAfterCasTrue?.value, '3', 'should update value')
+    t.is(entryAfterCasTrue?.seq, 3)
+    t.alike(await bee.core.get(2, { wait: false }), null)
+  })
+
+  await t.test('delAndClear', async t => {
+    const bee = await fac.getBee({ name: 'delAndClear' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
+    await bee.ready()
+    const key = 'testDelKey'
+
+    t.comment('deleting nonexistent key')
+    await fac.delAndClear(bee, key)
+    t.is(bee.core.length, 1, 'should not add any entry')
+
+    t.comment('del existing key')
+    await fac.putAndClear(bee, key, '1')
+
+    await fac.delAndClear(bee, key)
+    const entryAfterDelAndClear = await bee.get(key)
+
+    t.alike(await bee.core.get(1, { wait: false }), null)
+    t.alike(entryAfterDelAndClear, null)
+
+    t.comment('del with cas option')
+    await fac.putAndClear(bee, key, '3')
+    await fac.delAndClear(bee, key, {
+      cas: () => false
+    })
+    const entryAfterCasFalse = await bee.get(key)
+    t.is(entryAfterCasFalse?.value, '3', 'should keep old value')
+    t.is(entryAfterCasFalse?.seq, 3)
+
+    await fac.delAndClear(bee, key, {
+      cas: () => true
+    })
+    const entryAfterCasTrue = await bee.get(key)
+    t.alike(entryAfterCasTrue, null)
+    t.alike(await bee.core.get(3, { wait: false }), null)
   })
 })

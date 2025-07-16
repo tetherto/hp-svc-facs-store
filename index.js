@@ -58,6 +58,41 @@ class StoreFacility extends Base {
     }
   }
 
+  async putAndClear (bee, key, value, opts = {}) {
+    const shouldCheckIfUpdateHappened = !!opts.cas
+    const existingEntry = await bee.get(key)
+    await bee.put(key, value, opts)
+
+    if (!existingEntry?.seq) {
+      return
+    }
+    if (shouldCheckIfUpdateHappened) {
+      const updatedEntry = await bee.get(key)
+      if (updatedEntry?.seq === existingEntry?.seq) {
+        // cas returned false and so don't need to clear existing entry
+        return
+      }
+    }
+    await bee.core.clear(existingEntry.seq)
+  }
+
+  async delAndClear (bee, key, opts = {}) {
+    const shouldCheckIfDelHappened = !!opts.cas
+    const existingEntry = await bee.get(key)
+    await bee.del(key, opts)
+    if (!existingEntry?.seq) {
+      return
+    }
+    if (shouldCheckIfDelHappened) {
+      const afterDelEntry = await bee.get(key)
+      if (afterDelEntry?.seq === existingEntry?.seq) {
+        // cas returned false and so don't clear existing entry
+        return
+      }
+    }
+    await bee.core.clear(existingEntry.seq)
+  }
+
   async swarmBase (base) {
     const swarm = new Hyperswarm({ keypair: base.local.keyPair })
     swarm.on('connection', (connection) => base.replicate(connection))
