@@ -39,7 +39,8 @@ class StoreFacility extends Base {
 
     for await (const entry of bee.createHistoryStream({ gt: seqCheckpoint, lt: bee.core.length - 1 })) {
       if (entry.type === 'del') {
-        bee.core.clear(entry.seq)
+        await bee.core.setUserData(ckey, convIntToBin(entry.seq))
+        await bee.core.clear(entry.seq)
         continue
       }
 
@@ -51,7 +52,8 @@ class StoreFacility extends Base {
       }
 
       if (seq === -1 || entry.seq !== seq) {
-        bee.core.clear(entry.seq)
+        await bee.core.setUserData(ckey, convIntToBin(entry.seq))
+        await bee.core.clear(entry.seq)
       }
     }
     await bee.core.setUserData(ckey, convIntToBin(bee.core.length - 1))
