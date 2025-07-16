@@ -58,16 +58,16 @@ class StoreFacility extends Base {
     }
   }
 
-  async putAndClear (bee, key, value, opts = {}) {
-    const shouldCheckIfUpdateHappened = !!opts.cas
+  async putAndClear (bee, key, value, putOpts = {}, getOpts = {}) {
+    const shouldCheckIfUpdateHappened = !!putOpts.cas
     const existingEntry = await bee.get(key)
-    await bee.put(key, value, opts)
+    await bee.put(key, value, putOpts)
 
     if (!existingEntry?.seq) {
       return
     }
     if (shouldCheckIfUpdateHappened) {
-      const updatedEntry = await bee.get(key)
+      const updatedEntry = await bee.get(key, getOpts)
       if (updatedEntry?.seq === existingEntry?.seq) {
         // cas returned false and so don't need to clear existing entry
         return
@@ -76,15 +76,15 @@ class StoreFacility extends Base {
     await bee.core.clear(existingEntry.seq)
   }
 
-  async delAndClear (bee, key, opts = {}) {
-    const shouldCheckIfDelHappened = !!opts.cas
+  async delAndClear (bee, key, delOpts = {}, getOpts = {}) {
+    const shouldCheckIfDelHappened = !!delOpts.cas
     const existingEntry = await bee.get(key)
-    await bee.del(key, opts)
+    await bee.del(key, delOpts)
     if (!existingEntry?.seq) {
       return
     }
     if (shouldCheckIfDelHappened) {
-      const afterDelEntry = await bee.get(key)
+      const afterDelEntry = await bee.get(key, getOpts)
       if (afterDelEntry?.seq === existingEntry?.seq) {
         // cas returned false and so don't clear existing entry
         return
