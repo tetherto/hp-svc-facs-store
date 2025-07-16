@@ -56,7 +56,6 @@ class StoreFacility extends Base {
         await bee.core.clear(entry.seq)
       }
     }
-    await bee.core.setUserData(ckey, convIntToBin(bee.core.length - 1))
   }
 
   async swarmBase (base) {
