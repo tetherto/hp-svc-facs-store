@@ -7,7 +7,7 @@ const Base = require('bfx-facs-base')
 const Corestore = require('corestore')
 const Hyperbee = require('hyperbee')
 const Hyperswarm = require('hyperswarm')
-const LimitedMap = require('./libs/limited-map')
+const LimitedMap = require('./libs/limited.map')
 
 class StoreFacility extends Base {
   constructor (caller, opts, ctx) {
