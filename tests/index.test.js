@@ -7,6 +7,7 @@ const Hypercore = require('hypercore')
 const Hyperbee = require('hyperbee')
 const { convFromBin } = require('../utils')
 const { test, hook } = require('brittle')
+const SubEncoder = require('sub-encoder')
 
 const StoreFacility = require('../index')
 
@@ -202,6 +203,38 @@ test('facility', async (t) => {
     t.is(entryAfterCasTrue?.value, '3', 'should update value')
     t.is(entryAfterCasTrue?.seq, 3)
     t.alike(await bee.core.get(2, { wait: false }), null)
+
+    t.comment('should work fine with batch and sub encoder')
+
+    const firstBatch = bee.batch()
+    const dbTestSub = bee.sub('test-sub')
+    await dbTestSub.ready()
+    const subEnc = new SubEncoder()
+    const keyEncoding = subEnc.sub('test-sub')
+    const key = 'test-sub-encoder-key'
+    await fac.putAndClear(firstBatch, key, 'test-value', {
+      keyEncoding
+    }, {
+      keyEncoding
+    })
+    await firstBatch.flush()
+    const testSubEncoderEntry = await dbTestSub.get(key)
+    t.is(testSubEncoderEntry?.seq, 4)
+    t.is(testSubEncoderEntry?.key, key)
+    t.is(testSubEncoderEntry?.value, 'test-value')
+
+    const secondBatch = bee.batch()
+    await fac.putAndClear(secondBatch, key, 'test-value2', {
+      keyEncoding
+    }, {
+      keyEncoding
+    })
+    await secondBatch.flush()
+    const testSubEncoderEntryAfterUpdate = await dbTestSub.get(key)
+    t.is(testSubEncoderEntryAfterUpdate?.seq, 5)
+    t.is(testSubEncoderEntryAfterUpdate?.key, key)
+    t.is(testSubEncoderEntryAfterUpdate?.value, 'test-value2')
+    t.alike(await bee.core.get(4, { wait: false }), null)
   })
 
   await t.test('delAndClear', async t => {
