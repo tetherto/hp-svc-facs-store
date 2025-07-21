@@ -1,13 +1,11 @@
 'use strict'
 
 const async = require('async')
-const { convFromBin, convIntToBin } = require('./utils')
 const Autobase = require('autobase')
 const Base = require('bfx-facs-base')
 const Corestore = require('corestore')
 const Hyperbee = require('hyperbee')
 const Hyperswarm = require('hyperswarm')
-const LimitedMap = require('./libs/limited.map')
 
 class StoreFacility extends Base {
   constructor (caller, opts, ctx) {
@@ -32,65 +30,30 @@ class StoreFacility extends Base {
     return new Autobase(this.store.session(), boostrapKey, baseOpts)
   }
 
-  async clearBeeCache (bee, ckey, maxSize = 1000) {
-    let seqCheckpoint = await bee.core.getUserData(ckey)
-    seqCheckpoint = seqCheckpoint ? convFromBin(seqCheckpoint, 'number') : 0
-    const map = new LimitedMap(maxSize)
+  async clearBeeCache (bee, prefix) {
+    const prev = Number((await bee.core.getUserData(`${prefix}-cleared`) || '0'))
+    const checkout = Number((await bee.core.getUserData(`${prefix}-checkout`, 'number') || '0'))
 
-    for await (const entry of bee.createHistoryStream({ gt: seqCheckpoint, lt: bee.core.length - 1 })) {
-      if (entry.type === 'del') {
-        await bee.core.setUserData(ckey, convIntToBin(entry.seq))
-        await bee.core.clear(entry.seq)
-        continue
+    const co = bee.checkout(checkout)
+
+    for await (const entry of bee.createHistoryStream({ gt: prev, lt: bee.core.length - 1 })) {
+      const key = entry.key
+      const latestNode = await bee.get(key)
+      const checkoutNode = await co.get(key)
+
+      if (checkoutNode && (!latestNode || checkoutNode.seq !== latestNode.seq)) {
+        await bee.core.clear(checkoutNode.seq)
       }
 
-      let seq = map.get(entry.key)
-      if (!seq) {
-        const latest = await bee.get(entry.key)
-        seq = latest?.seq ?? -1
-        map.set(entry.key, seq)
-      }
-
-      if (seq === -1 || entry.seq !== seq) {
-        await bee.core.setUserData(ckey, convIntToBin(entry.seq))
+      if (!latestNode || latestNode.seq !== entry.seq) {
+        await bee.core.setUserData(`${prefix}-cleared`, '' + (entry.seq + 1))
         await bee.core.clear(entry.seq)
       }
     }
-  }
 
-  async putAndClear (bee, key, value, putOpts, getOpts) {
-    const shouldCheckIfUpdateHappened = !!putOpts?.cas
-    const existingEntry = await bee.get(key, getOpts)
-    await bee.put(key, value, putOpts)
+    await bee.core.setUserData(`${prefix}-checkout`, '' + bee.core.length)
 
-    if (!existingEntry?.seq) {
-      return
-    }
-    if (shouldCheckIfUpdateHappened) {
-      const updatedEntry = await bee.get(key, getOpts)
-      if (updatedEntry?.seq === existingEntry?.seq) {
-        // cas returned false and so don't need to clear existing entry
-        return
-      }
-    }
-    await bee.core.clear(existingEntry.seq)
-  }
-
-  async delAndClear (bee, key, delOpts, getOpts) {
-    const shouldCheckIfDelHappened = !!delOpts?.cas
-    const existingEntry = await bee.get(key, getOpts)
-    await bee.del(key, delOpts)
-    if (!existingEntry?.seq) {
-      return
-    }
-    if (shouldCheckIfDelHappened) {
-      const afterDelEntry = await bee.get(key, getOpts)
-      if (afterDelEntry?.seq === existingEntry?.seq) {
-        // cas returned false and so don't clear existing entry
-        return
-      }
-    }
-    await bee.core.clear(existingEntry.seq)
+    await co.close()
   }
 
   async swarmBase (base) {
