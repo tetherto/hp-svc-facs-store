@@ -139,8 +139,6 @@ test('facility', async (t) => {
     t.alike(await bee.core.get(9, { wait: false }), null)
     t.alike(await bee.core.get(10, { wait: false }), null)
     t.ok(await bee.core.get(11, { wait: false }), 'Last block should remain')
-    console.log('seqClearedCheckpoint, seqCheckoutCheckpoint')
-    console.log(seqClearedCheckpoint, seqCheckoutCheckpoint)
     t.is(seqClearedCheckpoint, 11)
     t.is(seqCheckoutCheckpoint, bee.core.length)
   })
