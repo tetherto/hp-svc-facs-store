@@ -32,7 +32,7 @@ class StoreFacility extends Base {
 
   async clearBeeCache (bee, prefix) {
     const prev = Number((await bee.core.getUserData(`${prefix}-cleared`) || '0'))
-    const checkout = Number((await bee.core.getUserData(`${prefix}-checkout`, 'number') || '0'))
+    const checkout = Number((await bee.core.getUserData(`${prefix}-checkout`) || '0'))
 
     const co = bee.checkout(checkout)
 
