@@ -30,6 +30,32 @@ class StoreFacility extends Base {
     return new Autobase(this.store.session(), boostrapKey, baseOpts)
   }
 
+  async clearBeeCache (bee, prefix) {
+    const prev = Number((await bee.core.getUserData(`${prefix}-cleared`) || '0'))
+    const checkout = Number((await bee.core.getUserData(`${prefix}-checkout`) || '0'))
+
+    const co = bee.checkout(checkout)
+
+    for await (const entry of bee.createHistoryStream({ gt: prev, lt: bee.core.length - 1 })) {
+      const key = entry.key
+      const latestNode = await bee.get(key)
+      const checkoutNode = await co.get(key)
+
+      if (checkoutNode && (!latestNode || checkoutNode.seq !== latestNode.seq)) {
+        await bee.core.clear(checkoutNode.seq)
+      }
+
+      if (!latestNode || latestNode.seq !== entry.seq) {
+        await bee.core.setUserData(`${prefix}-cleared`, '' + (entry.seq + 1))
+        await bee.core.clear(entry.seq)
+      }
+    }
+
+    await bee.core.setUserData(`${prefix}-checkout`, '' + bee.core.length)
+
+    await co.close()
+  }
+
   async swarmBase (base) {
     const swarm = new Hyperswarm({ keypair: base.local.keyPair })
     swarm.on('connection', (connection) => base.replicate(connection))
