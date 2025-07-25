@@ -39,7 +39,7 @@ class StoreFacility extends Base {
     for await (const entry of bee.createHistoryStream({ gt: prev, lt: bee.core.length - 1 })) {
       const key = entry.key
       const latestNode = await bee.get(key)
-      const checkoutNode = await co.get(key)
+      const checkoutNode = await co.get(key, { wait: false }).catch(() => null)
 
       if (checkoutNode && (!latestNode || checkoutNode.seq !== latestNode.seq)) {
         await bee.core.clear(checkoutNode.seq)
