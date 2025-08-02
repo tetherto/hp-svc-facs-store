@@ -84,7 +84,7 @@ class StoreFacility extends Base {
         }
 
         this.store = new Corestore(this.opts.storeDir, {
-          ...(this.opts.corestoreOpts ?? {}),
+          ...(this.opts.storeOpts ?? {}),
           primaryKey: this.opts.storePrimaryKey
             ? Buffer.from(this.opts.storePrimaryKey, 'hex')
             : null
