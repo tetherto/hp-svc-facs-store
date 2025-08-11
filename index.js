@@ -57,19 +57,24 @@ class StoreFacility extends Base {
   }
 
   async swarmBase (base) {
-    const swarm = new Hyperswarm({ keypair: base.local.keyPair })
-    swarm.on('connection', (connection) => base.replicate(connection))
-    swarm.join(base.discoveryKey)
-    return swarm
+    if (!this.swarm) {
+      this.swarm = new Hyperswarm({ keypair: base.local.keyPair })
+      this.swarm.on('connection', (connection) => base.replicate(connection))
+      this.swarm.join(base.discoveryKey)
+      return this.swarm
+    } else {
+      throw new Error('ERR_FACS_STORE_CANNOT_CREATE_MULTIPLE_SWARM_BASE')
+    }
   }
 
+  // TODO: Should we remove this function?
   async exists (_key) {
-    const core = this.store.get({ key: _key })
-    return !!core
+    return true
   }
 
   async unlink (_key) {
     const core = this.store.get({ key: _key })
+    await core.ready()
     await core.clear(0, core.length)
     await core.truncate()
     await core.close()
