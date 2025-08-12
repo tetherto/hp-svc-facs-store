@@ -5,7 +5,6 @@ const Autobase = require('autobase')
 const Base = require('bfx-facs-base')
 const Corestore = require('corestore')
 const Hyperbee = require('hyperbee')
-const Hyperswarm = require('hyperswarm')
 
 class StoreFacility extends Base {
   constructor (caller, opts, ctx) {
@@ -16,17 +15,17 @@ class StoreFacility extends Base {
     this.init()
   }
 
-  async getCore (opts = {}) {
+  getCore (opts = {}) {
     return this.store.get(opts)
   }
 
-  async getBee (opts = {}, beeOpts = {}) {
+  getBee (opts = {}, beeOpts = {}) {
     const hc = this.store.get(opts)
 
     return new Hyperbee(hc, beeOpts)
   }
 
-  async getBase (baseOpts, boostrapKey = null) {
+  getBase (baseOpts, boostrapKey = null) {
     return new Autobase(this.store.session(), boostrapKey, baseOpts)
   }
 
@@ -54,22 +53,6 @@ class StoreFacility extends Base {
     await bee.core.setUserData(`${prefix}-checkout`, '' + bee.core.length)
 
     await co.close()
-  }
-
-  async swarmBase (base) {
-    if (!this.swarm) {
-      this.swarm = new Hyperswarm({ keypair: base.local.keyPair })
-      this.swarm.on('connection', (connection) => base.replicate(connection))
-      this.swarm.join(base.discoveryKey)
-      return this.swarm
-    } else {
-      throw new Error('ERR_FACS_STORE_CANNOT_CREATE_MULTIPLE_SWARM_BASE')
-    }
-  }
-
-  // TODO: Should we remove this function?
-  async exists (_key) {
-    return true
   }
 
   async unlink (_key) {
