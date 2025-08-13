@@ -5,7 +5,6 @@ const Autobase = require('autobase')
 const Base = require('bfx-facs-base')
 const Corestore = require('corestore')
 const Hyperbee = require('hyperbee')
-const Hyperswarm = require('hyperswarm')
 
 class StoreFacility extends Base {
   constructor (caller, opts, ctx) {
@@ -16,17 +15,17 @@ class StoreFacility extends Base {
     this.init()
   }
 
-  async getCore (opts = {}) {
+  getCore (opts = {}) {
     return this.store.get(opts)
   }
 
-  async getBee (opts = {}, beeOpts = {}) {
+  getBee (opts = {}, beeOpts = {}) {
     const hc = this.store.get(opts)
 
     return new Hyperbee(hc, beeOpts)
   }
 
-  async getBase (baseOpts, boostrapKey = null) {
+  getBase (baseOpts, boostrapKey = null) {
     return new Autobase(this.store.session(), boostrapKey, baseOpts)
   }
 
@@ -56,20 +55,9 @@ class StoreFacility extends Base {
     await co.close()
   }
 
-  async swarmBase (base) {
-    const swarm = new Hyperswarm({ keypair: base.local.keyPair })
-    swarm.on('connection', (connection) => base.replicate(connection))
-    swarm.join(base.discoveryKey)
-    return swarm
-  }
-
-  async exists (_key) {
-    const core = this.store.get({ key: _key })
-    return !!core
-  }
-
   async unlink (_key) {
     const core = this.store.get({ key: _key })
+    await core.ready()
     await core.clear(0, core.length)
     await core.truncate()
     await core.close()

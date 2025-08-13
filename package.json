@@ -24,8 +24,7 @@
     "bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
     "corestore": "^7.4.5",
     "hyperbee": "^2.24.3",
-    "hypercore": "^11.11.2",
-    "hyperswarm": "^4.12.1"
+    "hypercore": "^11.11.2"
   },
   "devDependencies": {
     "@prev/corestore": "npm:corestore@^6.17.0",
