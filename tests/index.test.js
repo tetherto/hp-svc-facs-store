@@ -5,7 +5,7 @@ const fs = require('fs')
 const Autobase = require('autobase')
 const Hypercore = require('hypercore')
 const Hyperbee = require('hyperbee')
-const { solo: test, hook } = require('brittle')
+const { test, hook } = require('brittle')
 
 const StoreFacility = require('../index')
 
@@ -24,6 +24,11 @@ test('facility', async (t) => {
     if (fs.existsSync(storeDir)) {
       fs.rmSync(storeDir, { recursive: true })
     }
+  }
+
+  const getCleanCheckpoint = async (bee, clearKey) => {
+    const [last, next] = JSON.parse(await bee.core.getUserData(clearKey) || '[0,0]')
+    return { last, next }
   }
 
   t.teardown(async () => {
@@ -59,7 +64,7 @@ test('facility', async (t) => {
   await t.test('getCore', async (t) => {
     t.comment('getCore tests')
 
-    const core = await fac.getCore({ name: 'core-1' })
+    const core = fac.getCore({ name: 'core-1' })
     await core.ready()
     t.ok(core instanceof Hypercore)
     await core.append('log 1')
@@ -71,7 +76,7 @@ test('facility', async (t) => {
   await t.test('getBee', async (t) => {
     t.comment('getBee tests')
 
-    const bee = await fac.getBee({ name: 'bee-1' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
+    const bee = fac.getBee({ name: 'bee-1' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
     await bee.ready()
     t.ok(bee instanceof Hyperbee)
     await bee.put('foo', 'bar')
@@ -82,7 +87,7 @@ test('facility', async (t) => {
   await t.test('getBase', async (t) => {
     t.comment('getBase tests')
 
-    const base = await fac.getBase({
+    const base = fac.getBase({
       optimistic: true,
       valueEncoding: 'json',
       open: (store) => new Hyperbee(store.get('base-1'), { keyEncoding: 'utf-8', valueEncoding: 'utf-8' }),
@@ -101,8 +106,32 @@ test('facility', async (t) => {
     t.is((await view.get('foo')).value, 'bar')
   })
 
+  await t.test('clearBeeCache - initial run skips cleanup, db cleanup is always 1 version behind', async (t) => {
+    const clearKey = 'clearBeeCache-0'
+    const bee = fac.getBee({ name: 'clearBeeCache-0' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
+    await bee.ready()
+
+    await bee.put('keyToBeRemoved', 1)
+    await bee.put('keyToBePutOnce', 2)
+    await bee.del('keyToBeRemoved')
+
+    await fac.clearBeeCache(bee, clearKey)
+
+    const checkpoint = await getCleanCheckpoint(bee, clearKey)
+    const entryToBePutOnce = await bee.get('keyToBePutOnce')
+
+    t.not(await bee.core.get(1, { wait: false }), null)
+    t.is(entryToBePutOnce?.seq, 2)
+    t.is(entryToBePutOnce?.value, '2')
+    t.not(await bee.core.get(3, { wait: false }), null)
+
+    t.is(checkpoint.last, 0)
+    t.is(checkpoint.next, 3)
+  })
+
   await t.test('clearBeeCache - block deletion behavior in one execution', async (t) => {
-    const bee = await fac.getBee({ name: 'clearBeeCache' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
+    const clearKey = 'clearBeeCache-1'
+    const bee = fac.getBee({ name: 'clearBeeCache-1' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
     await bee.ready()
 
     await bee.put('keyToBeDeletedAndAddedAgain', 1)
@@ -117,9 +146,13 @@ test('facility', async (t) => {
     await bee.put('keyToBeRemainUnchanged', 10)
     await bee.del('keyToBeRemainUnchanged')
 
-    await fac.clearBeeCache(bee, 'clearBeeCache', 10)
-    const seqClearedCheckpoint = Number(await bee.core.getUserData('clearBeeCache-cleared'))
-    const seqCheckoutCheckpoint = Number(await bee.core.getUserData('clearBeeCache-checkout'))
+    await fac.clearBeeCache(bee, clearKey) // skip initial run
+    await bee.put('keyToBeInsertedAfterClean', 12)
+    await bee.put('keyToBeInsertedAndDeletedAfterClean', 13)
+    await bee.del('keyToBeInsertedAndDeletedAfterClean')
+
+    await fac.clearBeeCache(bee, clearKey)
+    const checkpoint = await getCleanCheckpoint(bee, clearKey)
 
     const entryToBeDeletedAndAddedAgain = await bee.get('keyToBeDeletedAndAddedAgain', { wait: false })
     const entryToBePutTwice = await bee.get('keyToBePutTwice')
@@ -139,12 +172,17 @@ test('facility', async (t) => {
     t.alike(await bee.core.get(9, { wait: false }), null)
     t.alike(await bee.core.get(10, { wait: false }), null)
     t.ok(await bee.core.get(11, { wait: false }), 'Last block should remain')
-    t.is(seqClearedCheckpoint, 11)
-    t.is(seqCheckoutCheckpoint, bee.core.length)
+    t.not(await bee.core.get(12, { wait: false }), null)
+    t.not(await bee.core.get(13, { wait: false }), null)
+    t.not(await bee.core.get(14, { wait: false }), null)
+
+    t.is(checkpoint.last, 11)
+    t.is(checkpoint.next, 14)
   })
 
   await t.test('clearBeeCache - block deletion behavior across executions', async t => {
-    const bee = await fac.getBee({ name: 'clearBeeCache2' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
+    const clearKey = 'clearBeeCache-2'
+    const bee = fac.getBee({ name: 'clearBeeCache-2' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
     await bee.ready()
 
     // values correspond to their block seq. numbers
@@ -153,20 +191,26 @@ test('facility', async (t) => {
     await bee.del('irrelevantKey1', 3)
     await bee.put('irrelevantKey2', 4)
 
-    await fac.clearBeeCache(bee, 'clearBeeCache2')
-    const seqClearedCheckpoint = Number(await bee.core.getUserData('clearBeeCache2-cleared'))
-    const seqCheckoutCheckpoint = Number(await bee.core.getUserData('clearBeeCache2-checkout'))
-    t.is(seqClearedCheckpoint, 4)
-    t.is(seqCheckoutCheckpoint, bee.core.length)
+    await fac.clearBeeCache(bee, clearKey)
+    let checkpoint = await getCleanCheckpoint(bee, clearKey)
+    t.is(checkpoint.last, 0)
+    t.is(checkpoint.next, 4)
 
     await bee.del('keyToBeDeletedInNextRun') // seq # 5
     await bee.put('irrelevantKey3', 6)
 
-    await fac.clearBeeCache(bee, 'clearBeeCache', 10)
-    const seqClearedCheckpointAfterSecondRun = Number(await bee.core.getUserData('clearBeeCache2-cleared'))
-    t.is(seqClearedCheckpointAfterSecondRun, 4)
+    await fac.clearBeeCache(bee, clearKey)
+    checkpoint = await getCleanCheckpoint(bee, clearKey)
+    t.is(checkpoint.last, 4)
+    t.is(checkpoint.next, 6)
 
-    t.is(await bee.core.get(5, { wait: false }), null)
+    await fac.clearBeeCache(bee, clearKey)
+
     t.is(await bee.core.get(2, { wait: false }), null)
+    t.is(await bee.core.get(5, { wait: false }), null)
+
+    checkpoint = await getCleanCheckpoint(bee, clearKey)
+    t.is(checkpoint.last, 6)
+    t.is(checkpoint.next, 6)
   })
 })
