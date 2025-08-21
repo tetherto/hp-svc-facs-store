@@ -15,46 +15,47 @@ class StoreFacility extends Base {
     this.init()
   }
 
+  /**
+   * @param {object} opts
+   * @returns {import('hypercore')}
+   */
   getCore (opts = {}) {
     return this.store.get(opts)
   }
 
+  /**
+   * @param {object} opts
+   * @param {object} beeOpts
+   * @returns {Hyperbee}
+   */
   getBee (opts = {}, beeOpts = {}) {
     const hc = this.store.get(opts)
 
     return new Hyperbee(hc, beeOpts)
   }
 
+  /**
+   * @param {object} baseOpts
+   * @param {string|Buffer|Uint8Array} [boostrapKey]
+   * @returns {Autobase}
+   */
   getBase (baseOpts, boostrapKey = null) {
     return new Autobase(this.store.session(), boostrapKey, baseOpts)
   }
 
-  async clearBeeCache (bee, prefix) {
-    const prev = Number((await bee.core.getUserData(`${prefix}-cleared`) || '0'))
-    const checkout = Number((await bee.core.getUserData(`${prefix}-checkout`) || '0'))
-
-    const co = bee.checkout(checkout)
-
-    for await (const entry of bee.createHistoryStream({ gt: prev, lt: bee.core.length - 1 })) {
-      const key = entry.key
-      const latestNode = await bee.get(key)
-      const checkoutNode = await co.get(key, { wait: false }).catch(() => null)
-
-      if (checkoutNode && (!latestNode || checkoutNode.seq !== latestNode.seq)) {
-        await bee.core.clear(checkoutNode.seq)
-      }
-
-      if (!latestNode || latestNode.seq !== entry.seq) {
-        await bee.core.setUserData(`${prefix}-cleared`, '' + (entry.seq + 1))
-        await bee.core.clear(entry.seq)
-      }
-    }
-
-    await bee.core.setUserData(`${prefix}-checkout`, '' + bee.core.length)
-
-    await co.close()
+  /**
+   * @param {Hyperbee} bee
+   * @param {string} clearKey - key to store checkpoint on user data
+   */
+  async clearBeeCache (bee, clearKey) {
+    const [lastCleared, nextClearing] = JSON.parse(await bee.core.getUserData(clearKey) || '[0,0]')
+    await bee.clearUnlinked({ gte: lastCleared, lt: nextClearing })
+    await bee.core.setUserData(clearKey, JSON.stringify([nextClearing, bee.version - 1]))
   }
 
+  /**
+   * @param {string|Buffer|Uint8Array} _key
+   */
   async unlink (_key) {
     const core = this.store.get({ key: _key })
     await core.ready()
