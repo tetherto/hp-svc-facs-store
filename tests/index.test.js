@@ -5,7 +5,7 @@ const fs = require('fs')
 const Autobase = require('autobase')
 const Hypercore = require('hypercore')
 const Hyperbee = require('hyperbee')
-const { test, hook } = require('brittle')
+const { solo: test, hook } = require('brittle')
 
 const StoreFacility = require('../index')
 
