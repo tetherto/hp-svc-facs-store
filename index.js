@@ -46,11 +46,16 @@ class StoreFacility extends Base {
   /**
    * @param {Hyperbee} bee
    * @param {string} clearKey - key to store checkpoint on user data
+   * @param {number} [maxSize]
    */
-  async clearBeeCache (bee, clearKey) {
+  async clearBeeCache (bee, clearKey, maxSize = null) {
+    const maxNextLimit = bee.version - 1
+
     const [lastCleared, nextClearing] = JSON.parse(await bee.core.getUserData(clearKey) || '[0,0]')
-    await bee.clearUnlinked({ gte: lastCleared, lt: nextClearing })
-    await bee.core.setUserData(clearKey, JSON.stringify([nextClearing, bee.version - 1]))
+    const lt = await bee.clearUnlinked({ gte: lastCleared, lt: nextClearing })
+
+    let nextLimit = Math.min(maxSize ? lt + maxSize : maxNextLimit, maxNextLimit)
+    await bee.core.setUserData(clearKey, JSON.stringify([lt, nextLimit]))
   }
 
   /**
