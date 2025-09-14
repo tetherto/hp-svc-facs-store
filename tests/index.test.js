@@ -213,4 +213,38 @@ test('facility', async (t) => {
     t.is(checkpoint.last, 6)
     t.is(checkpoint.next, 6)
   })
+
+  await t.test('clearBeeCache - block deletion behavior with max range', async t => {
+    const clearKey = 'clearBeeCache-3'
+    const bee = fac.getBee({ name: 'clearBeeCache-3' }, { keyEncoding: 'utf-8', valueEncoding: 'utf-8' })
+    await bee.ready()
+
+    // values correspond to their block seq. numbers
+    await bee.put('irrelevantKey1', 1)
+    await bee.put('keyToBeDeletedInNextRun', 2)
+    await bee.del('irrelevantKey1', 3)
+    await bee.put('irrelevantKey2', 4)
+
+    await fac.clearBeeCache(bee, clearKey)
+    let checkpoint = await getCleanCheckpoint(bee, clearKey)
+    t.is(checkpoint.last, 0)
+    t.is(checkpoint.next, 4)
+
+    await bee.del('keyToBeDeletedInNextRun') // seq # 5
+    await bee.put('irrelevantKey3', 6)
+
+    await fac.clearBeeCache(bee, clearKey, 1)
+    checkpoint = await getCleanCheckpoint(bee, clearKey)
+    t.is(checkpoint.last, 4)
+    t.is(checkpoint.next, 5)
+
+    await fac.clearBeeCache(bee, clearKey, 1)
+
+    t.is(await bee.core.get(2, { wait: false }), null)
+    t.not(await bee.core.get(5, { wait: false }), null)
+
+    checkpoint = await getCleanCheckpoint(bee, clearKey)
+    t.is(checkpoint.last, 5)
+    t.is(checkpoint.next, 6)
+  })
 })

@@ -23,8 +23,8 @@
     "autobase": "^7.18.0",
     "bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
     "corestore": "^7.4.5",
-    "hyperbee": "^2.26.0",
-    "hypercore": "^11.13.3"
+    "hyperbee": "^2.26.3",
+    "hypercore": "^11.16.0"
   },
   "devDependencies": {
     "@prev/corestore": "npm:corestore@^6.17.0",
