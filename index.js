@@ -2,7 +2,7 @@
 
 const async = require('async')
 const Autobase = require('autobase')
-const Base = require('bfx-facs-base')
+const Base = require('@bitfinex/bfx-facs-base')
 const Corestore = require('corestore')
 const Hyperbee = require('hyperbee')
 
