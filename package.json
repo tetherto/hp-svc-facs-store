@@ -19,13 +19,12 @@
     "posttest": "npm run lint"
   },
   "dependencies": {
-    "async": "^3.2.1",
-    "autobase": "^7.11.0",
-    "@bitfinexcom/bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
+    "@bitfinex/bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
+    "async": "^3.2.6",
+    "autobase": "^7.18.0",
     "corestore": "^7.4.5",
-    "hyperbee": "^2.24.2",
-    "hypercore": "^11.8.3",
-    "hyperswarm": "^4.11.7"
+    "hyperbee": "^2.26.3",
+    "hypercore": "^11.16.0"
   },
   "devDependencies": {
     "@prev/corestore": "npm:corestore@^6.17.0",

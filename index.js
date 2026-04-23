@@ -2,10 +2,9 @@
 
 const async = require('async')
 const Autobase = require('autobase')
-const Base = require('@bitfinexcom/bfx-facs-base')
+const Base = require('@bitfinex/bfx-facs-base')
 const Corestore = require('corestore')
 const Hyperbee = require('hyperbee')
-const Hyperswarm = require('hyperswarm')
 
 class StoreFacility extends Base {
   constructor (caller, opts, ctx) {
@@ -16,34 +15,55 @@ class StoreFacility extends Base {
     this.init()
   }
 
-  async getCore (opts = {}) {
+  /**
+   * @param {object} opts
+   * @returns {import('hypercore')}
+   */
+  getCore (opts = {}) {
     return this.store.get(opts)
   }
 
-  async getBee (opts = {}, beeOpts = {}) {
+  /**
+   * @param {object} opts
+   * @param {object} beeOpts
+   * @returns {Hyperbee}
+   */
+  getBee (opts = {}, beeOpts = {}) {
     const hc = this.store.get(opts)
 
     return new Hyperbee(hc, beeOpts)
   }
 
-  async getBase (baseOpts, boostrapKey = null) {
+  /**
+   * @param {object} baseOpts
+   * @param {string|Buffer|Uint8Array} [boostrapKey]
+   * @returns {Autobase}
+   */
+  getBase (baseOpts, boostrapKey = null) {
     return new Autobase(this.store.session(), boostrapKey, baseOpts)
   }
 
-  async swarmBase (base) {
-    const swarm = new Hyperswarm({ keypair: base.local.keyPair })
-    swarm.on('connection', (connection) => base.replicate(connection))
-    swarm.join(base.discoveryKey)
-    return swarm
+  /**
+   * @param {Hyperbee} bee
+   * @param {string} clearKey - key to store checkpoint on user data
+   * @param {number} [maxSize]
+   */
+  async clearBeeCache (bee, clearKey, maxSize = null) {
+    const maxNextLimit = bee.version - 1
+
+    const [lastCleared, nextClearing] = JSON.parse(await bee.core.getUserData(clearKey) || '[0,0]')
+    const lt = await bee.clearUnlinked({ gte: lastCleared, lt: nextClearing })
+
+    let nextLimit = Math.min(maxSize ? lt + maxSize : maxNextLimit, maxNextLimit)
+    await bee.core.setUserData(clearKey, JSON.stringify([lt, nextLimit]))
   }
 
-  async exists (_key) {
-    const core = this.store.get({ key: _key })
-    return !!core
-  }
-
+  /**
+   * @param {string|Buffer|Uint8Array} _key
+   */
   async unlink (_key) {
     const core = this.store.get({ key: _key })
+    await core.ready()
     await core.clear(0, core.length)
     await core.truncate()
     await core.close()
@@ -58,6 +78,7 @@ class StoreFacility extends Base {
         }
 
         this.store = new Corestore(this.opts.storeDir, {
+          ...(this.opts.storeOpts ?? {}),
           primaryKey: this.opts.storePrimaryKey
             ? Buffer.from(this.opts.storePrimaryKey, 'hex')
             : null
