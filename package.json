@@ -21,7 +21,7 @@
   "dependencies": {
     "async": "^3.2.1",
     "autobase": "^7.11.0",
-    "bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
+    "@bitfinexcom/bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
     "corestore": "^7.4.5",
     "hyperbee": "^2.24.2",
     "hypercore": "^11.8.3",
