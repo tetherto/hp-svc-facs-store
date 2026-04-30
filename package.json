@@ -19,7 +19,7 @@
     "posttest": "npm run lint"
   },
   "dependencies": {
-    "@bitfinex/bfx-facs-base": "git+https://github.com/bitfinexcom/bfx-facs-base.git",
+    "@bitfinex/bfx-facs-base": "^1.1.0",
     "async": "^3.2.6",
     "autobase": "^7.18.0",
     "corestore": "^7.4.5",
