@@ -44,5 +44,9 @@
       "name": "prdn",
       "email": "paolo@tether.to"
     }
-  ]
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
 }
