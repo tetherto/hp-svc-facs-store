@@ -12,11 +12,10 @@
     "bitfinex"
   ],
   "scripts": {
-    "lint": "standard",
-    "lint:fix": "standard --fix",
-    "test": "brittle tests/{,**/}*.test.js",
-    "test:coverage": "brittle --coverage tests/{,**/}*.test.js",
-    "posttest": "npm run lint"
+    "lint": "bfx-lint-js",
+    "lint:fix": "bfx-lint-js --fix",
+    "test": "npm run lint && brittle-node tests/{,**/}*.test.js",
+    "test:coverage": "npm run lint && brittle-node --coverage tests/{,**/}*.test.js"
   },
   "dependencies": {
     "@bitfinex/bfx-facs-base": "^1.1.0",
@@ -27,12 +26,11 @@
     "hypercore": "^11.16.0"
   },
   "devDependencies": {
-    "@prev/corestore": "npm:corestore@^6.17.0",
-    "brittle": "^3.16.3",
-    "standard": "^17.1.2"
+    "@bitfinex/lint-js": "^1.1.0",
+    "brittle": "^4.5.0"
   },
   "engines": {
-    "node": ">=16.0"
+    "node": ">=22.0"
   },
   "license": "Apache-2.0",
   "repository": {
