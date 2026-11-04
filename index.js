@@ -54,7 +54,7 @@ class StoreFacility extends Base {
     const [lastCleared, nextClearing] = JSON.parse(await bee.core.getUserData(clearKey) || '[0,0]')
     const lt = await bee.clearUnlinked({ gte: lastCleared, lt: nextClearing })
 
-    let nextLimit = Math.min(maxSize ? lt + maxSize : maxNextLimit, maxNextLimit)
+    const nextLimit = Math.min(maxSize ? lt + maxSize : maxNextLimit, maxNextLimit)
     await bee.core.setUserData(clearKey, JSON.stringify([lt, nextLimit]))
   }
 
