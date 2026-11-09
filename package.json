@@ -18,7 +18,7 @@
     "test:coverage": "npm run lint && brittle-node --coverage tests/{,**/}*.test.js"
   },
   "dependencies": {
-    "@bitfinex/bfx-facs-base": "^1.1.0",
+    "@bitfinex/bfx-facs-base": "^2.0.0",
     "async": "^3.2.6",
     "autobase": "^7.18.0",
     "corestore": "^7.4.5",
