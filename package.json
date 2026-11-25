@@ -20,14 +20,14 @@
   "dependencies": {
     "@bitfinex/bfx-facs-base": "^2.0.0",
     "async": "^3.2.6",
-    "autobase": "^7.18.0",
-    "corestore": "^7.4.5",
-    "hyperbee": "^2.26.3",
-    "hypercore": "^11.16.0"
+    "autobase": "^7.28.2",
+    "corestore": "^7.16.1",
+    "hyperbee": "^2.27.3",
+    "hypercore": "^11.40.4"
   },
   "devDependencies": {
     "@bitfinex/lint-js": "^1.1.0",
-    "brittle": "^4.5.0"
+    "brittle": "^4.6.0"
   },
   "engines": {
     "node": ">=22.0"
